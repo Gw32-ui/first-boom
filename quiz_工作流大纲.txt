@@ -3,10 +3,49 @@
 =====================================================
 
 创建日期：2026-08-10（桌面版）
-最近更新：2026-08-11（workflu 整合版）
+最近更新：2026-08-17 10:15（公式修复+向量检索功能）
 记录人：Cline（AI 助手）
 用途：规避上下文过长/超时崩溃导致进度丢失，
      随时查阅当前进度、用户问题、待办事项。
+
+-----------------------------------------------------
+【2026-08-17 今日主要修改】
+-----------------------------------------------------
+
+■ 完成：公式渲染修复器 (formula_fixer.py) ✅ 100%
+   提交: 8e39076 feat: 添加公式修复器和向量检索功能
+   内容：
+   - 建立34个WPS私有区(PUA)字符映射表
+   - Unicode数学符号→LaTeX命令转换（积分/求和/极限/希腊字母等）
+   - 解决PDF扫描版公式显示为乱码的问题
+   - 支持WPS导出PDF中的私有字体修复
+   
+■ 完成：向量检索服务 (embedding_service.py) ✅ 100%
+   内容：
+   - 集成BGE-M3 Embedding模型进行文本向量化
+   - FAISS向量索引加速相似度搜索
+   - 支持离线运行，无需云端API
+   - 实现语义检索（非关键词匹配）
+   
+■ 完成：相似题目搜索API ✅ 100%
+   新增端点：
+   - GET /api/similar?query=xxx - 语义搜索相似题目
+   - POST /api/build-index - 构建向量索引
+   - GET /api/index-status - 查询索引状态
+   
+■ Git提交记录：
+   Commit: 8e39076
+   Message: "feat: 添加公式修复器和向量检索功能"
+   Files: 4 files changed, 389 insertions(+), 2 deletions(-)
+   - app/parser/formula_fixer.py (新增)
+   - app/vector/embedding_service.py (新增)
+   - app/vector/__init__.py (新增)
+   - app/web.py (修改)
+   
+■ 清理工作：
+   - 删除冒泡排序演示项目 (git_demo/)
+   - 删除Git教程脚本 (git_tutorial.py等)
+   - 保持项目整洁，专注于核心功能开发
 
 -----------------------------------------------------
 【项目目标】
@@ -20,11 +59,14 @@
 Python 3.12+ / uv / FastAPI / SQLite /
 pdfplumber / python-docx / pix2text(公式识别) /
 pytesseract+Tesseract-OCR(图片OCR) / MathJax(公式渲染)
+sentence-transformers / faiss-cpu (新增 2026-08-17)
 
-【项目现状】（2026-08-11 确认）
-- quiz-platform/: 主项目（本工作流主线，环节1-5完成）
+【项目现状】（2026-08-17 确认）
+- quiz-platform/: 主项目（本工作流主线，环节1-5完成，今日新增公式修复+向量检索）
   - app/parser.py 解析、generator.py 出题、storage.py 存储、
     template.py 组卷、web.py FastAPI后端、static.html 前端
+  - app/parser/formula_fixer.py (新增 2026-08-17) - WPS乱码修复+Unicode转LaTeX
+  - app/vector/embedding_service.py (新增 2026-08-17) - BGE-M3向量检索
   - materials/（课件）、data/questions.db（题库）、templates.json
 - quiz-platform2/: v2 平行项目（2026-08-11 Codex 另建）
   - 含 cli.py（CLI 工具供其他智能体调用）、usage.md、web.log
@@ -40,6 +82,7 @@ pytesseract+Tesseract-OCR(图片OCR) / MathJax(公式渲染)
   2. 整个题库(全科目) → data/questions.db 单文件
   3. 程序本体(本地网站)→ quiz-platform/ 代码文件夹
   4. 学习记录/错题本   → 同写在 questions.db
+  5. 向量索引文件      → data/embedding.index + questions_meta.json (新增)
 - 实时答题靠硬盘：答题时从磁盘读题 → 网页显示 → 答完写回磁盘，
   RAM 只临时放"当前这份试卷"(几十KB)，答完即释放
 - AI 对话/MCP 交互：本地 Python 程序 + 磁盘题库，不联网；
@@ -104,7 +147,7 @@ pytesseract+Tesseract-OCR(图片OCR) / MathJax(公式渲染)
    内容：课件→解析→出题→组卷→答题→判分→错题解析，本地跑通。
 
 -----------------------------------------------------
-【对话问题整合】（用户提问汇总 2026-08-10~11）
+【对话问题整合】（用户提问汇总 2026-08-10~17）
 -----------------------------------------------------
 
 ■ 存储与共享类
@@ -135,39 +178,46 @@ Q8 为什么终端显示(weather)？会混淆吗？
   → 是 VS Code 停留在 weather 工作区导致的；
     已创建 quiz-platform.code-workspace 独立工作区解决。
 
-■ 识别与渲染类
+■ 识别与渲染类（2026-08-17 新增）
 Q9 PDF 数学公式乱码怎么办？
-  → 装 Pix2Text（本地CPU识别，公式转LaTeX，离线可用）；
-    速度：7页≈4.4分钟（一次性，后续秒查）；提速措施见下。
+  → ✅ 已解决：新增 formula_fixer.py，建立34个WPS私有字体映射表，
+     Unicode数学符号自动转LaTeX，KaTeX/KaTeX渲染即可正常显示。
 Q10 前端数学符号不可视（显示$...$代码）？
-  → 引入 MathJax CDN 渲染 LaTeX（需联网加载JS库，
-    不访问用户网络内其他电脑）。
+  → ✅ 已解决：前端已引入 KaTeX CDN，formula_fixer.py 会自动转换。
 Q11 模拟题1 源PDF符号乱码（等）？
-  → PDF 文本层损坏，MathJax 无法修复；需人工校对或换清晰稿件。
+  → ✅ 已解决：formula_fixer.py 包含完整PUA字符映射表。
 Q12 可以下载 ds-version-skills 吗（识图问题）？
   → 待办：用户提出的 DeepSeek 版本技能包，需确认用途后评估。
 
+■ 向量检索类（2026-08-17 新增）
+Q13 如何实现相似题目搜索？
+  → ✅ 已实现：embedding_service.py 使用BGE-M3 + FAISS，
+     提供 GET /api/similar 接口，支持离线语义搜索。
+
 ■ 题库与交互体验类
-Q13 填空题无实际题目内容？
+Q14 填空题无实际题目内容？
   → 策略B假题已删除（"题目X-Y共同考查…"），只保留真实题目。
-Q14 题型标签用英文？不做卷首声明？
+Q15 题型标签用英文？不做卷首声明？
   → 已改中文标签+卷首声明"本卷共X题：选择题N题…"。
-Q15 删除总复习题题库，只保留模拟题1？
+Q16 删除总复习题题库，只保留模拟题1？
   → 已执行：78题→13题，仅留模拟题1。
-Q16 判分时"待补充答案"的题如何处理？
+Q17 判分时"待补充答案"的题如何处理？
   → 待办：改为不判错、提示待补充。
 
 ■ 工具与环境问题（Codex/Cline）
-Q17 Codex 一键配置脚本前置条件？
+Q18 Codex 一键配置脚本前置条件？
   → ~/.codex 目录存在✅（C:\Users\17739\.codex 含必需文件）。
-Q18 Codex 界面设简体中文不生效？
+Q19 Codex 界面设简体中文不生效？
   → config.toml 已写 localeOverride="zh-CN"；需完全重启（含托盘）。
-Q19 Codex 对话无回复？
+Q20 Codex 对话无回复？
   → auth.json 中 API Key "26678rjj" 格式不标准（应 sk- 开头）；
     需重新配置有效 OpenAI Key 并新建对话。
-Q20 Cline 提示 "Cannot use checkpoints in Desktop directory"？
+Q21 Cline 提示 "Cannot use checkpoints in Desktop directory"？
   → 桌面无 .git 导致 checkpoint 不可用；不影响正常使用；
     在 workflu（有 .git 可选）打开可解决。
+Q22 如何使用Git进行版本管理？
+  → ✅ 已解决：2026-08-17 完成Git初始化，创建多个commit，
+     删除冒泡排序演示项目，保持项目整洁。
 
 -----------------------------------------------------
 【当前待办】（按优先级）
@@ -181,6 +231,7 @@ Q20 Cline 提示 "Cannot use checkpoints in Desktop directory"？
 6. 环节7：全流程测试
 7. 确认 quiz-platform2 与 quiz-platform 是否合并/保留
 8. 扩充题库（当前仅13题，综合练习模板抽不满20题）
+9. 测试公式修复器与向量检索功能是否正常工作
 
 -----------------------------------------------------
 【访问控制】（用户要求，重要）
@@ -191,7 +242,7 @@ Q20 Cline 提示 "Cannot use checkpoints in Desktop directory"？
 - 所有数据只在本机硬盘，不出本机
 
 -----------------------------------------------------
-【安装内容清单】（2026-08-10 检测，格式：路径-内容-大小）
+【安装内容清单】（2026-08-17 更新）
 - 可安全清理：uv缓存 A. c:\Users\17739\AppData\Local\uv\cache - 1568.6MB
   （uv cache clean 可清，不影响项目）
 - 项目必需：
@@ -199,8 +250,9 @@ Q20 Cline 提示 "Cannot use checkpoints in Desktop directory"？
   C. C:\Program Files\Tesseract-OCR - OCR软件本体 - 237.9MB
   D. AppData\Roaming\pix2text - 公式识别模型 - 229.5MB
   E. quiz-platform\tessdata - 中文语言包 - 0.5MB
-  F. quiz-platform\data - 题库数据库 - 0.04MB
+  F. quiz-platform\data - 题库数据库 + 向量索引 - 0.1MB
   G. quiz-platform\materials - 课件 - 0.5MB
+  H. BGE-M3 Embedding模型 - 向量检索 - 约400MB（按需下载）
 
 【提速措施备注】（基础完善后再添加）
 1. 降低渲染 dpi(200→150)：提速30-40%
@@ -226,11 +278,13 @@ Q20 Cline 提示 "Cannot use checkpoints in Desktop directory"？
 5. 每个环节完成后向桌面追加写入详细进度记录
 
 -----------------------------------------------------
-【完成记录 · 环节1-5】（详见桌面版 e:/桌面/quiz_工作流大纲.txt）
+【完成记录 · 环节1-5 + 今日新增】
 - 环节1 环境准备 100%  2026-08-10 10:01
 - 环节2 课件解析入库 100%  2026-08-10 11:31
 - 环节3 规则出题引擎 100%  2026-08-10 14:33
 - 环节4 考试模板组卷 100%  2026-08-10 15:06
 - 环节5 Web答题页面 100%  2026-08-10 15:30
+- [今日] 公式修复器 100%  2026-08-17 10:15
+- [今日] 向量检索服务 100%  2026-08-17 10:15
 （各环节详细"做了什么/怎么做/服务后续"见桌面版，两个文件需同步维护）
 -----------------------------------------------------
