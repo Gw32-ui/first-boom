@@ -1,0 +1,26 @@
+# 系统配置
+# enable_llm_grading: 是否启用大模型辅助判卷（档位2，用于简答/思考题）
+# 填写 OpenAI 兼容接口信息后才会真正调用
+enable_llm_grading: false
+
+llm:
+  api_key: ""   # 留空则回退 .env 的 ZHIPU_API_KEY
+  base_url: "https://open.bigmodel.cn/api/paas/v4"
+  model: "glm-4.7-flash"  # 免费文本模型（glm-4.5-flash 已下线）
+  timeout: 120
+
+# 图片理解（S16）：两步择优。启用后调用视觉模型分类图片（示意图/公式/符号/数据表/装饰）。
+# 默认走智谱 GLM-4.6V-Flash（云端免费），api_key 留空时从 .env 的 ZHIPU_API_KEY 读取。
+vision:
+  enabled: true
+  base_url: "https://open.bigmodel.cn/api/paas/v4"
+  api_key: ""   # 从项目根 .env 的 ZHIPU_API_KEY 读取，避免明文入库
+  model: "glm-4.6v-flash"
+  timeout: 60
+
+# 导入解析（问题 7）：PDF 文本层碎片化检测与视觉 OCR 兜底
+# 公式型 PDF 文本层是拆散的单字符/半截命令（text.strip() 非空但不可用），
+# 质量分 ≥ pdf_text_quality_threshold 时强制整页渲染并走 GLM 视觉识别。
+parser:
+  pdf_text_quality_threshold: 0.30   # 文本层质量分阈值，≥ 视为碎片化
+  pdf_ocr_enabled: true              # 允许

@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.pytest_tmp/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# 运行时生成（日志、导出、图片）
+logs/
+output/images/*
+!output/images/.gitkeep
+output/papers/*.json
+!output/papers/.gitkeep
+output/records/*.json
+!output/records/.gitkeep
+
+# SQLite 临时文件
+*.db-journal
+*.db-wal
+*.db-shm
+
+# 残缺/本地临时环境与运行时数据
+.venv.broken/
+*.db
+data/questions.db.bak_*
+
+# 密钥/本地配置
+.env

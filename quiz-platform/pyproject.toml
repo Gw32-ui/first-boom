@@ -1,0 +1,33 @@
+[project]
+name = "quiz-platform"
+version = "1.0.0"
+description = "本地出题交互系统：题库管理 / 专项训练 / 自由组卷 / 智能判卷 / 历史记录"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.141.1",
+    "pydantic>=2.7.0",
+    "pyyaml>=6.0.1",
+    "uvicorn>=0.52.1",
+    "python-docx>=1.2.0",
+    "lxml>=5.0.0",
+    "pdfplumber>=0.11.10",
+    "pymupdf>=1.24.0",
+    "pillow>=12.3.0",
+    "python-multipart>=0.0.9",
+    "httpx>=0.28.1",
+    "mcp[cli]>=2.0.0",
+    "numpy>=1.26.0",
+    "faiss-cpu>=1.8.0",
+    "sentence-transformers>=3.0.0",
+    "torch>=2.2.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.2,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
